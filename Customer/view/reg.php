@@ -22,6 +22,7 @@ unset($_SESSION["phoneErr"], $_SESSION["addressErr"], $_SESSION["roleErr"], $_SE
 unset($_SESSION["previousValues"]);
 ?>
 
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -93,7 +94,7 @@ unset($_SESSION["previousValues"]);
 
 <div class="form-container">
     <h2>Register</h2>
-  <form method="post" action="myproj\Customer\controller/regauth.php">
+    <form method="post" action="../controller/regauth.php">
 
         <label>Username
             <input type="text" name="username" value="<?php echo $previousValues['username'] ?? ''; ?>">
@@ -116,7 +117,7 @@ unset($_SESSION["previousValues"]);
         </label>
 
         <label>Address
-            <input type="text" name="add" value="<?php echo $previousValues['add'] ?? ''; ?>">
+            <input type="text" name="address" value="<?php echo $previousValues['add'] ?? ''; ?>">
             <div class="error"><?php echo $addressErr; ?></div>
         </label>
 

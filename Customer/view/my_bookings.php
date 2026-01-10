@@ -1,7 +1,7 @@
+
 <?php
 session_start();
 include "../model/DatabaseConnection.php";
-
 
 if (!($_SESSION['isLoggedIn'] ?? false)) {
     header("Location: login.php");
@@ -9,7 +9,6 @@ if (!($_SESSION['isLoggedIn'] ?? false)) {
 }
 
 $user_id = $_SESSION['id'] ?? 0;
-$email = $_SESSION['email'] ?? '';
 
 
 $db = new DatabaseConnection();
@@ -17,25 +16,17 @@ $conn = $db->openConnection();
 
 
 $stmt = $conn->prepare("
-    SELECT b.id AS booking_id, b.tickets_booked, b.booked_at,
+    SELECT b.id AS booking_id, b.tickets_booked, b.created_at, 
            e.title, e.event_date, e.venue, e.ticket_price
     FROM bookings b
     JOIN events e ON b.event_id = e.id
     WHERE b.user_id = ?
-    ORDER BY b.booked_at DESC
+    ORDER BY b.created_at DESC
 ");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $bookings = $result->fetch_all(MYSQLI_ASSOC);
-
-
-$totalBookings = count($bookings);
-$upcomingEvents = 0;
-$today = date('Y-m-d');
-foreach($bookings as $b){
-    if($b['event_date'] >= $today) $upcomingEvents++;
-}
 
 
 $bookingMessage = $_SESSION['bookingMessage'] ?? '';
@@ -45,13 +36,11 @@ unset($_SESSION['bookingMessage']);
 <!DOCTYPE html>
 <html>
 <head>
-    <title>User Dashboard</title>
+    <title>My Bookings</title>
     <style>
         body { font-family: Arial; background: #f5f5f5; }
-        .container { width: 90%; max-width: 1000px; margin: 30px auto; background: #fff; padding: 20px; border-radius: 6px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+        .container { width: 90%; max-width: 900px; margin: 30px auto; background: #fff; padding: 20px; border-radius: 6px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
         h2 { text-align: center; }
-        a.logout { display: inline-block; margin-bottom: 20px; text-decoration: none; color: white; background-color: #444; padding: 8px 15px; }
-        a.logout:hover { background-color: #000; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #aaa; padding: 8px; text-align: left; }
         th { background: #333; color: #fff; }
@@ -59,36 +48,18 @@ unset($_SESSION['bookingMessage']);
         .cancel-btn { background: #c0392b; color: #fff; padding: 5px 10px; border: none; cursor: pointer; border-radius: 4px; }
         .cancel-btn:hover { background: #e74c3c; }
         .message { background: #2ecc71; color: #fff; padding: 10px; margin-bottom: 15px; border-radius: 4px; text-align: center; }
-        .stats { margin-top: 20px; display: flex; gap: 20px; }
-        .stat-box { flex: 1; padding: 15px; background: #eee; border-radius: 6px; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Welcome, <?php echo htmlspecialchars($email); ?></h2>
-    <a class="logout" href="../controller/logout.php">Logout</a>
+    <h2>My Bookings</h2>
 
-    <!-- Stats -->
-    <div class="stats">
-        <div class="stat-box">
-            <h3>Total Bookings</h3>
-            <p><?php echo $totalBookings; ?></p>
-        </div>
-        <div class="stat-box">
-            <h3>Upcoming Events</h3>
-            <p><?php echo $upcomingEvents; ?></p>
-        </div>
-    </div>
-
-  
     <?php if($bookingMessage): ?>
         <div class="message"><?php echo $bookingMessage; ?></div>
     <?php endif; ?>
 
-  
-    <h3>My Bookings</h3>
-    <?php if($totalBookings > 0): ?>
+    <?php if(count($bookings) > 0): ?>
         <table>
             <tr>
                 <th>Event</th>
@@ -101,16 +72,16 @@ unset($_SESSION['bookingMessage']);
             </tr>
             <?php foreach($bookings as $b): ?>
             <tr>
-                <td><?php echo htmlspecialchars($b['title']); ?></td>
+                <td><?php echo $b['title']; ?></td>
                 <td><?php echo $b['event_date']; ?></td>
-                <td><?php echo htmlspecialchars($b['venue']); ?></td>
+                <td><?php echo $b['venue']; ?></td>
                 <td><?php echo $b['tickets_booked']; ?></td>
                 <td><?php echo $b['ticket_price']; ?></td>
                 <td><?php echo $b['tickets_booked'] * $b['ticket_price']; ?></td>
                 <td>
                     <form method="post" action="../controller/cancel_booking.php" onsubmit="return confirm('Are you sure you want to cancel this booking?');">
                         <input type="hidden" name="booking_id" value="<?php echo $b['booking_id']; ?>">
-                        <input type="submit" class="cancel-btn" value="Cancel">
+                        <input type="submit" name="cancel" class="cancel-btn" value="Cancel">
                     </form>
                 </td>
             </tr>

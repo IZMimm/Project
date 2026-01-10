@@ -1,13 +1,8 @@
-
-
-<?php 
-
+<?php
 session_start();
 
+session_unset();
 session_destroy();
 
-
-Header("Location: ..\view\login.php");
-
-
-?>
+header("Location: ../view/login.php");
+exit;

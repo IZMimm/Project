@@ -10,8 +10,8 @@ include "../controller/UserController.php";
 
 <html>
 <head>
-    <script src="../Js/userStatus.js"></script>
-    <title>Customer - Users</title>
+    <script src="../js/userStatus.js"></script>
+    <title>Admin - Users</title>
     <style>
         body { font-family: Arial; }
         table { border-collapse: collapse; width: 60%; margin: auto; }
