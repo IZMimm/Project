@@ -3,7 +3,7 @@ session_start();
 
 $isLoggedIn = $_SESSION["isLoggedIn"] ?? false;
 if ($isLoggedIn) {
-    header("Location: dashboard.php");
+    header("Location: login.php");
     exit;
 }
 
@@ -21,7 +21,6 @@ unset($_SESSION["usernameErr"], $_SESSION["passwordErr"], $_SESSION["emailErr"])
 unset($_SESSION["phoneErr"], $_SESSION["addressErr"], $_SESSION["roleErr"], $_SESSION["RegisterErr"]);
 unset($_SESSION["previousValues"]);
 ?>
-
 
 <!DOCTYPE html>
 <html>

@@ -1,125 +1,176 @@
 <?php
 session_start();
-include "../model/DatabaseConnection.php";
 
-
-if (!($_SESSION['isLoggedIn'] ?? false)) {
+if (!($_SESSION['isLoggedIn'] ?? false) || $_SESSION['role'] !== 'user') {
     header("Location: login.php");
     exit;
 }
 
-$user_id = $_SESSION['id'] ?? 0;
 $email = $_SESSION['email'] ?? '';
 
-
-$db = new DatabaseConnection();
-$conn = $db->openConnection();
-
-
-$stmt = $conn->prepare("
-    SELECT b.id AS booking_id, b.tickets_booked, b.booked_at,
-           e.title, e.event_date, e.venue, e.ticket_price
-    FROM bookings b
-    JOIN events e ON b.event_id = e.id
-    WHERE b.user_id = ?
-    ORDER BY b.booked_at DESC
-");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$bookings = $result->fetch_all(MYSQLI_ASSOC);
-
-
-$totalBookings = count($bookings);
-$upcomingEvents = 0;
-$today = date('Y-m-d');
-foreach($bookings as $b){
-    if($b['event_date'] >= $today) $upcomingEvents++;
+$conn = new mysqli("localhost", "root", "", "ticket_management");
+if ($conn->connect_error) {
+    die("DB connection failed");
 }
 
+$stmt = $conn->prepare("SELECT id, username, email, profile_pic FROM users WHERE email=?");
+$stmt->bind_param("s", $email);
+$stmt->execute();
+$user = $stmt->get_result()->fetch_assoc();
 
-$bookingMessage = $_SESSION['bookingMessage'] ?? '';
-unset($_SESSION['bookingMessage']);
+if (!$user) {
+    die("User not found");
+}
+
+$userId = $user['id'];
+
+
+if (isset($_POST['upload_photo'])) {
+    if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === 0) {
+
+        $allowed = ['jpg','jpeg','png'];
+        $ext = strtolower(pathinfo($_FILES['profile_pic']['name'], PATHINFO_EXTENSION));
+
+        if (in_array($ext, $allowed)) {
+            $newName = "user_" . $userId . "_" . time() . "." . $ext;
+            $dir = "../uploads/profile/";
+
+            if (!is_dir($dir)) {
+                mkdir($dir, 0777, true);
+            }
+
+            move_uploaded_file($_FILES['profile_pic']['tmp_name'], $dir.$newName);
+
+            $up = $conn->prepare("UPDATE users SET profile_pic=? WHERE id=?");
+            $up->bind_param("si", $newName, $userId);
+            $up->execute();
+
+            header("Location: dashboard.php");
+            exit;
+        }
+    }
+}
+
+$profileImg = $user['profile_pic']
+    ? "../uploads/profile/".$user['profile_pic']
+    : "../uploads/profile/default.png";
+
+$conn->close();
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
-    <title>User Dashboard</title>
-    <style>
-        body { font-family: Arial; background: #f5f5f5; }
-        .container { width: 90%; max-width: 1000px; margin: 30px auto; background: #fff; padding: 20px; border-radius: 6px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
-        h2 { text-align: center; }
-        a.logout { display: inline-block; margin-bottom: 20px; text-decoration: none; color: white; background-color: #444; padding: 8px 15px; }
-        a.logout:hover { background-color: #000; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #aaa; padding: 8px; text-align: left; }
-        th { background: #333; color: #fff; }
-        tr:nth-child(even) { background: #f2f2f2; }
-        .cancel-btn { background: #c0392b; color: #fff; padding: 5px 10px; border: none; cursor: pointer; border-radius: 4px; }
-        .cancel-btn:hover { background: #e74c3c; }
-        .message { background: #2ecc71; color: #fff; padding: 10px; margin-bottom: 15px; border-radius: 4px; text-align: center; }
-        .stats { margin-top: 20px; display: flex; gap: 20px; }
-        .stat-box { flex: 1; padding: 15px; background: #eee; border-radius: 6px; text-align: center; }
-    </style>
+<title>User Dashboard</title>
+<style>
+body{
+    margin:0;
+    font-family:Arial;
+    background:linear-gradient(135deg,#1abc9c,#16a085);
+    min-height:100vh;
+}
+.dashboard{
+    width:420px;
+    margin:60px auto;
+    background:#fff;
+    padding:30px;
+    border-radius:8px;
+    box-shadow:0 10px 25px rgba(0,0,0,.2);
+    text-align:center;
+}
+.profile img{
+    width:100px;
+    height:100px;
+    border-radius:50%;
+    object-fit:cover;
+    border:3px solid #1abc9c;
+}
+.profile form{
+    margin-top:10px;
+}
+.profile input[type=file]{
+    font-size:12px;
+}
+.profile button{
+    padding:6px 12px;
+    background:#27ae60;
+    color:#fff;
+    border:none;
+    border-radius:4px;
+    cursor:pointer;
+}
+.profile button:hover{ background:#229954; }
+
+h2{ margin-top:15px; color:#2c3e50; }
+p{ color:#555; font-size:14px; }
+
+a.btn{
+    display:block;
+    padding:12px;
+    margin:10px 0;
+    background:#1abc9c;
+    color:#fff;
+    text-decoration:none;
+    border-radius:4px;
+}
+a.btn:hover{ background:#159a80; }
+
+a.logout{
+    background:#e74c3c;
+}
+a.logout:hover{ background:#c0392b; }
+
+#bookingBox{
+    margin-top:20px;
+    text-align:left;
+}
+.booking{
+    background:#f2f2f2;
+    padding:10px;
+    border-radius:4px;
+    margin-bottom:8px;
+    font-size:13px;
+}
+</style>
 </head>
+
 <body>
 
-<div class="container">
-    <h2>Welcome, <?php echo htmlspecialchars($email); ?></h2>
-    <a class="logout" href="../controller/logout.php">Logout</a>
+<div class="dashboard">
 
-    <!-- Stats -->
-    <div class="stats">
-        <div class="stat-box">
-            <h3>Total Bookings</h3>
-            <p><?php echo $totalBookings; ?></p>
-        </div>
-        <div class="stat-box">
-            <h3>Upcoming Events</h3>
-            <p><?php echo $upcomingEvents; ?></p>
-        </div>
+    <div class="profile">
+        <img src="<?= $profileImg ?>">
+        <form method="post" enctype="multipart/form-data">
+            <input type="file" name="profile_pic" accept="image/*" required>
+            <button name="upload_photo">Upload</button>
+        </form>
     </div>
 
-  
-    <?php if($bookingMessage): ?>
-        <div class="message"><?php echo $bookingMessage; ?></div>
-    <?php endif; ?>
+    <h2>User Dashboard</h2>
+    <p>Welcome, <?= htmlspecialchars($user['username']) ?></p>
 
-  
-    <h3>My Bookings</h3>
-    <?php if($totalBookings > 0): ?>
-        <table>
-            <tr>
-                <th>Event</th>
-                <th>Date</th>
-                <th>Venue</th>
-                <th>Tickets</th>
-                <th>Price</th>
-                <th>Total</th>
-                <th>Action</th>
-            </tr>
-            <?php foreach($bookings as $b): ?>
-            <tr>
-                <td><?php echo htmlspecialchars($b['title']); ?></td>
-                <td><?php echo $b['event_date']; ?></td>
-                <td><?php echo htmlspecialchars($b['venue']); ?></td>
-                <td><?php echo $b['tickets_booked']; ?></td>
-                <td><?php echo $b['ticket_price']; ?></td>
-                <td><?php echo $b['tickets_booked'] * $b['ticket_price']; ?></td>
-                <td>
-                    <form method="post" action="../controller/cancel_booking.php" onsubmit="return confirm('Are you sure you want to cancel this booking?');">
-                        <input type="hidden" name="booking_id" value="<?php echo $b['booking_id']; ?>">
-                        <input type="submit" class="cancel-btn" value="Cancel">
-                    </form>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-        </table>
-    <?php else: ?>
-        <p>You have no bookings yet.</p>
-    <?php endif; ?>
+    <a class="btn" href="events.php">Upcoming Events</a>
+    <a class="btn" href="my_bookings.php">My Bookings</a>
+    <a class="btn logout" href="../controller/logout.php">Logout</a>
+
+    <div id="bookingBox"></div>
+
 </div>
+
+<script>
+function loadBookings(){
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function(){
+        if(this.readyState === 4 && this.status === 200){
+            document.getElementById("bookingBox").innerHTML = this.responseText;
+        }
+    };
+    xhttp.open("GET","../controller/fetch_user_bookings.php",true);
+    xhttp.send();
+}
+
+loadBookings();
+</script>
 
 </body>
 </html>

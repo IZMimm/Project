@@ -8,7 +8,7 @@ if (!($_SESSION['isLoggedIn'] ?? false)) {
     exit;
 }
 
-$user_id = $_SESSION['id']; 
+$user_id = $_SESSION['user_id']; 
 $db = new DatabaseConnection();
 $conn = $db->openConnection();
 

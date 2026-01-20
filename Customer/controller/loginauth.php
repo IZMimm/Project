@@ -17,7 +17,6 @@ if(!$password){
 }
 
 if(count($errors) > 0){
-
     if(isset($errors["email"])){
         $_SESSION["emailErr"] = $errors["email"];
     }
@@ -33,26 +32,34 @@ if(count($errors) > 0){
     exit;
 }
 
-
-
 $db = new DatabaseConnection();
 $connection = $db->openConnection();
 
-
-$sql = "SELECT * FROM users WHERE email='$email'";
-$result = $connection->query($sql);
+$sql = "SELECT * FROM users WHERE email = ?";
+$stmt = $connection->prepare($sql);
+$stmt->bind_param("s", $email);
+$stmt->execute();
+$result = $stmt->get_result();
 
 if($result && $result->num_rows == 1){
-
     $data = $result->fetch_assoc();
 
- 
     if(password_verify($password, $data["password"])){
 
+        if($data["role"] !== 'user'){
+            $_SESSION["LoginErr"] = "Access denied. User login only.";
+            header("Location: ../view/login.php");
+            exit;
+        }
+
         $_SESSION["email"] = $data["email"];
+        $_SESSION["username"] = $data["username"];
+        $_SESSION["id"] = $data["id"];
+        $_SESSION["user_id"] = $data["id"];
+        $_SESSION["role"] = $data["role"];
         $_SESSION["isLoggedIn"] = true;
 
-        header("Location: ../User/view/dashboard.php");
+        header("Location: ../view/dashboard.php");
         exit;
 
     }else{
@@ -66,3 +73,7 @@ if($result && $result->num_rows == 1){
     header("Location: ../view/login.php");
     exit;
 }
+
+$stmt->close();
+$connection->close();
+?>

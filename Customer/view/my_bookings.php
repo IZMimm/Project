@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 include "../model/DatabaseConnection.php";
@@ -16,12 +15,12 @@ $conn = $db->openConnection();
 
 
 $stmt = $conn->prepare("
-    SELECT b.id AS booking_id, b.tickets_booked, b.created_at, 
+    SELECT b.id AS booking_id, b.tickets_booked, b.booked_at, 
            e.title, e.event_date, e.venue, e.ticket_price
     FROM bookings b
     JOIN events e ON b.event_id = e.id
     WHERE b.user_id = ?
-    ORDER BY b.created_at DESC
+    ORDER BY b.booked_at DESC
 ");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
@@ -48,11 +47,17 @@ unset($_SESSION['bookingMessage']);
         .cancel-btn { background: #c0392b; color: #fff; padding: 5px 10px; border: none; cursor: pointer; border-radius: 4px; }
         .cancel-btn:hover { background: #e74c3c; }
         .message { background: #2ecc71; color: #fff; padding: 10px; margin-bottom: 15px; border-radius: 4px; text-align: center; }
-    </style>
+        a.home {float:left;text-decoration:none;background:#3498db;color:#fff; padding:5px 12px; border-radius:4px;} 
+        a.home:hover{
+         background:#2c80b4;}
+   </style>
 </head>
 <body>
 
 <div class="container">
+    <a class="home" href="dashboard.php">Home</a>
+
+
     <h2>My Bookings</h2>
 
     <?php if($bookingMessage): ?>

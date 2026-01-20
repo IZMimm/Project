@@ -1,13 +1,13 @@
 
 <?php
- include "../model/DatabaseConnection.php";
- $Email="";
- $Email=$_POST["Email"];
+include "../model/DatabaseConnection.php";
+$Email="";
+$Email=$_POST["Email"];
 
- if($Email==""){
+if($Email==""){
     echo "Email Empty";
- }
- else{
+}
+else{
 
     $connection=new DatabaseConnection();
     $conobj=$connection->openConnection();
@@ -21,6 +21,9 @@
             echo "Unique Email";
     }
     $connection->closeConnection($conobj);
-  }
+}
+
+
+
 
 ?>

@@ -1,25 +1,23 @@
-
 <?php
- session_start();
- include "../model/DatabaseConnection.php";
+session_start();
+include "../model/DatabaseConnection.php";
 
- if (!($_SESSION['isLoggedIn'] ?? false)) {
+if (!($_SESSION['isLoggedIn'] ?? false)) {
     header("Location: login.php");
     exit;
- }
+}
 
- $db = new DatabaseConnection();
- $conn = $db->openConnection();
+$db = new DatabaseConnection();
+$conn = $db->openConnection();
 
 
- $eventsResult = $conn->query("SELECT * FROM events WHERE status='active' AND available_tickets>0");
- $events = [];
- if ($eventsResult->num_rows > 0) {
+$eventsResult = $conn->query("SELECT * FROM events WHERE status='active' AND available_tickets>0");
+$events = [];
+if ($eventsResult->num_rows > 0) {
     while ($row = $eventsResult->fetch_assoc()) {
         $events[] = $row;
     }
- }
-
+}
 ?>
 
 <!DOCTYPE html>
@@ -40,12 +38,20 @@
         .error { color: red; margin-bottom:10px; }
         a.logout { float:right; text-decoration:none; background:#444; color:#fff; padding:5px 10px; border-radius:4px; }
         a.logout:hover{ background:#000; }
+        a.home {float:left;text-decoration:none;background:#3498db;color:#fff; padding:5px 12px; border-radius:4px;} 
+        a.home:hover{
+         background:#2c80b4;}
+
+
     </style>
+
 </head>
 <body>
 
- <div class="container">
+<div class="container">
+    <a class="home" href="dashboard.php">Home</a>
     <a class="logout" href="../controller/logout.php">Logout</a>
+   
     <h2>Available Events</h2>
 
     <?php if($_SESSION['bookingSuccess'] ?? false): ?>
@@ -86,7 +92,7 @@
         </tr>
         <?php endforeach; ?>
     </table>
- </div>
+</div>
 
 </body>
 </html>
